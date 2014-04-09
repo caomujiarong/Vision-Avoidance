@@ -6,220 +6,6 @@
 //  Copyright (c) 2013年 Jacky. All rights reserved.
 //
 
-/*#include <iostream>
- #include <opencv2/opencv.hpp>
- 
- using namespace std;
- using namespace cv;
- 
- int main(int argc, const char * argv[])
- {
- Mat img = imread("/Users/jacky/Pictures/colorTable.jpg");
- if (img.data == 0) {
- cerr<<"image not found!!"<<endl;
- return -1;
- }
- namedWindow("image",CV_WINDOW_AUTOSIZE);
- imshow("image", img);
- waitKey();
- return 0;
- }
- 
- #include <opencv2/imgproc/imgproc.hpp>
- #include <opencv2/highgui/highgui.hpp>
- 
- #include <iostream>
- 
- using namespace cv;
- using namespace std;
- 
- Mat src;
- Mat hsv;
- Mat hue;
- 
- int bins = 25;
- 
- void Hist_and_Backproj(int, void* );
- 
- int main(int argc,char* argv[])
- {
- src = imread(argv[1], 1);
- cvtColor(src, hsv, CV_BGR2HSV);
- 
- hue.create( hsv.size(), hsv.depth() );
- int ch[] = { 0,  0};
- mixChannels(&hsv, 1, &hue, 1, ch, 1);
- 
- char* window_image = "Source image";
- namedWindow(window_image, CV_WINDOW_AUTOSIZE);
- 
- createTrackbar("* Hue  bins: ", window_image, &bins, 180, Hist_and_Backproj );
- Hist_and_Backproj(0, 0);
- 
- imshow(window_image, src);
- 
- waitKey(0);
- return 0;
- }
- 
- void Hist_and_Backproj(int, void* )
- {
- MatND hist;
- int histSize = MAX( bins, 2 );
- float hue_range[] = { 0, 180 };
- const float* ranges = { hue_range };
- 
- /// 计算直方图并归一化
- calcHist( &hue, 1, 0, Mat(), hist, 1, &histSize, &ranges, true, false );
- normalize( hist, hist, 0, 255, NORM_MINMAX, -1, Mat() );
- 
- /// 计算反向投影
- MatND backproj;
- calcBackProject( &hue, 1, 0, hist, backproj, &ranges, 1, true );
- 
- /// 显示反向投影
- imshow( "BackProj", backproj );
- 
- /// 显示直方图
- int w = 400; int h = 400;
- int bin_w = cvRound( (double) w / histSize );
- Mat histImg = Mat::zeros( w, h, CV_8UC3 );
- 
- for( int i = 0; i < bins; i ++ )
- { rectangle( histImg, Point( i*bin_w, h ), Point( (i+1)*bin_w, h - cvRound( hist.at<float>(i)*h/255.0 ) ), Scalar( 0, 0, 255 ), -1 ); }
- 
- imshow( "Histogram", histImg );
- }
- 
- #include <opencv2/opencv.hpp>
- #include <opencv2/imgproc/imgproc.hpp>
- #include <opencv2/highgui/highgui.hpp>
- #include <iostream>
- 
- using namespace cv;
- using namespace std;
- 
- int main(int argc,char* argv[])
- {
- //将图像文件加载至内存 分配图像数据结构所需要的内控 返回一个指向数据结构IplImage的内存块：
- IplImage *img = cvLoadImage("/Users/jacky/Pictures/com.tencent.ScreenCapture/QQ20130815-1@2x.png");
- //需要把这个图片放在这个project下面，比如我的：&user name\Documents\Visual Studio 2010\Projects\opencvhello\opencvhello文件夹里面
- //定义两个窗口，自由大小。本函数由HighGUI库提供。第二个参数如果为0，则窗口大小不会因图像的大小而改变。
- cvNamedWindow("Image-in",CV_WINDOW_AUTOSIZE);
- cvNamedWindow("Image-out",CV_WINDOW_AUTOSIZE);
- cvNamedWindow("Image-out2",CV_WINDOW_AUTOSIZE);
- //先显示原jpg图
- cvShowImage("Image-in",img);
- //分配空间存储处理后的图像
- IplImage *out=cvCreateImage(
- cvGetSize(img),//当前图像大小
- IPL_DEPTH_8U,//各通道每个像素点的类型
- 3//通道总数
- );
- //进行高斯处理，处理的是指针img指向的内存，将处理后的数据交给out指针指向的内存，对每个像素周围3x3的区域进行高斯平滑处理（其实输入输出图像可以是相同的）
- 
- cvSmooth(img,out,CV_GAUSSIAN,3,3);
- //显示处理后的图像
- cvShowImage("Image-out",out);
- 
- IplImage *out2 = cvCreateImage(cvGetSize(img),//当前图像大小
- IPL_DEPTH_8U,//各通道每个像素点的类型
- 3//通道总数
- );
- 
- cvSmooth(img, out2,CV_MEDIAN,3,3);
- cvShowImage("Image-out2", out2);
- 
- //清除垃圾
- cvReleaseImage(&out);
- cvReleaseImage(&img);
- cvReleaseImage(&out2);
- 
- //cvWaitKey的参数如果是正值，则程序会等待数值个毫秒，然后继续运行；如果是负值或者0，就会等待用户触发按键操作，然后继续程序。
- cvWaitKey();
- //销毁窗口，养成好习惯
- cvDestroyWindow("Image-in");
- cvDestroyWindow("Image-out");
- 
- cvDestroyWindow("Image-out2");
- 
- return 0;
- 
- }
- #include <opencv2/opencv.hpp>
- #include <opencv2/imgproc/imgproc.hpp>
- #include <opencv2/highgui/highgui.hpp>
- #include <iostream>
- 
- using namespace cv;
- using namespace std;
- 
- 
- int main()
- {
- int height,width,step,channels;
- IplImage *contour_img=cvLoadImage("/Users/jacky/Documents/workspace/OpenCVdemo/test.jpg",-1);//3通道图像
- if (!contour_img)
- {
- cout<<"File can't be opened"<<endl;
- }
- 
- IplImage *band1=cvCreateImage(cvGetSize(contour_img),IPL_DEPTH_8U,1);
- IplImage *dst=  cvCreateImage(cvGetSize(contour_img),IPL_DEPTH_8U,3);
- 
- cvCopy(contour_img,dst);
- cvSplit(contour_img,band1,NULL,NULL,NULL);
- 
- cvSaveImage("/Users/jacky/Documents/workspace/OpenCVdemo/reverse.jpg",band1);
- 
- int i,j;
- height  =dst->height;
- width   =dst->width;
- step    =dst->widthStep;
- channels=dst->nChannels;
- cout<<"height: "<<height<<" width: "<<width<<" step: "<<step<<" channels: "<<channels<<endl;
- 
- CvMemStorage *storage=cvCreateMemStorage(0);
- CvSeq *contour=0;
- 
- int NoContours=cvFindContours(band1,storage,&contour,sizeof(CvContour),CV_RETR_CCOMP,CV_CHAIN_APPROX_NONE);
- cout<<"No of contours: "<<NoContours<<endl;
- CvPoint *currentPoint;
- unsigned char *p_band;
- CvSeq *v_list;
- 
- int total;
- 
- for (;contour!=0;contour=contour->h_next)
- {
- total=contour->total;//获得点的个数
- cout<<"total: "<<total<<endl;
- for (i=0;i<total;i++)
- {
- currentPoint=(CvPoint *)cvGetSeqElem(contour,i);
- p_band=(unsigned char *)dst->imageData+currentPoint->y*step+channels*currentPoint->x;
- *p_band=0;
- *(p_band+1)=255;
- *(p_band+2)=0;
- }
- v_list=contour->v_next;
- for (;v_list!=NULL;v_list=v_list->h_next)
- {
- total=v_list->total;
- for (i=0;i<total;i++)
- {
- currentPoint=(CvPoint *)cvGetSeqElem(v_list,i);
- p_band=(unsigned char *)dst->imageData+currentPoint->y*step+channels*currentPoint->x;
- *p_band=0;
- *(p_band+1)=2;
- *(p_band+2)=255;
- }
- }
- 
- }
- cvSaveImage("/Users/jacky/Documents/workspace/OpenCVdemo/reverse3.jpg",dst);
- return 0;
- }*/
 
 
 #include <curl/curl.h>
@@ -239,8 +25,7 @@ size_t process_data(void *buffer, size_t size, size_t nmemb, void *user_p) { 	FI
 
 
 
-
-int main( int argc, char** argv){
+void getImage(){
     
     //"http://192.168.1.200/rev.cgi?Cmd=nav&action=18&drive=13";
     //    http://192.168.10.18/GetData.cgi?4325
@@ -254,19 +39,6 @@ int main( int argc, char** argv){
     curl_easy_setopt(easy_handle, CURLOPT_URL, "http://192.168.10.18/Jpeg/CamImg[4325].jpg");
     // 向前"http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=1&speed=15" );
     
-    
-    /*
-     
-     Forward
-     http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=1&speed=15
-     Reverse
-     http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=2&speed=1
-     Left
-     http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=5&speed=1
-     Right
-     http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=6&speed=1
-     
-     */
     
     //wb+ 读写打开或建立一个二进制文件，允许读和写。
     FILE *fp = fopen("/Users/jacky/Documents/workspace/OpenCVdemo/data.jpg", "wb+");
@@ -282,108 +54,434 @@ int main( int argc, char** argv){
 	curl_easy_cleanup(easy_handle);
 	curl_global_cleanup();
     
-    return 0;
+    return;
+}
+
+
+
+void robortControl(int i)
+{
+    
+    CURLcode code;
+    code = curl_global_init(CURL_GLOBAL_DEFAULT);
+    CURL *easy_handle = curl_easy_init();
+    switch (i) {
+        case 1://forward
+                        curl_easy_setopt(easy_handle, CURLOPT_URL, "http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=1&speed=1");
+            break;
+            
+        case 2://back
+                        curl_easy_setopt(easy_handle, CURLOPT_URL, "http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=2&speed=1");
+            break;
+            
+        case 3://left
+                       curl_easy_setopt(easy_handle, CURLOPT_URL, "http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=5&speed=1");
+            break;
+            
+        case 4://right
+                       curl_easy_setopt(easy_handle, CURLOPT_URL, "http://192.168.10.18//rev.cgi?Cmd=nav&action=18&drive=6&speed=1");
+            break;
+            
+        default:
+            break;
+    }
+    curl_easy_perform(easy_handle);//执行handle命令
+    
+    curl_easy_cleanup(easy_handle);
+	curl_global_cleanup();
+}
+
+
+
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include <stdlib.h>
+#include <stdio.h>
+
+
+using namespace cv;
+
+
+Mat cannyimage;     //存储边界检测获得的结果
+Mat coloredArea;    //涂色可以走的地方
+
+
+int fromDirect = 0; //来的方向，一直修改，1,2,3,4代表上下左右，1即代表从上来，初始点为0
+
+//如果原图像太大可能在递归过程中会溢出，因此用金字塔缩小......不过还有过小需要放大的问题，应该不会这么小吧？
+void lesson(Mat& src){
+    Mat result;
+    
+    pyrDown(src, result);
+    
+    while((result.cols>200)||(result.rows>200)){
+        printf("I am still lessoning!!! and cols:%d,rows:%d  \n",result.cols,result.rows);
+        src = result;
+        pyrDown(src, result);
+    }
+}
+
+
+
+//src.at<Vec3b>(x,y)[0];   第x行第y列的第0通道！
+
+
+//涂色的颜色
+int r=155,g=195,b=115;
+
+
+//对coloredArea进行上色，选择(55,55,55)这个颜色了
+void colorElement(int x,int y){
+    coloredArea.at<Vec3b>(x,y)[0]=r;
+    coloredArea.at<Vec3b>(x,y)[1]=g;
+    coloredArea.at<Vec3b>(x,y)[2]=b;
+}
+
+
+//把是否为边界抽出来，可能会变更！
+
+/*
+ version 1: 检测单个点是不是canny输出的边界
+ 
+ version 2: 由于canny算法会产生有断的地方，所以检测该点为中心的一个小的范围内，但凡有两个点为边界或者
+ 该点就是边界(减少判断次数！)我们就可认为它是边界(或者猜想它是断点)
+ 
+ 同时机器人不能视为质点，所以这样也可以划出一段比较有余地的区域
+ 
+ 
+ @current version: version 2
+ */
+bool isBorder(int x,int y){
+    
+    if(cannyimage.at<u_char>(x,y) == 255){
+        return true;
+    }else{
+        int countOfBorderPoint = 0;   //该区域内有多少个边界点
+        for(int i=x-2; i<x+2; i++){
+            for(int j=y-2; j<y+2; j++){
+                bool outOfBounds = (i<0)||(j<0)||(i>cannyimage.rows)||(j>cannyimage.cols);
+                if(!outOfBounds){
+                    if(cannyimage.at<u_char>(i,j) == 255){
+                        ++countOfBorderPoint;
+                    }
+                    if(countOfBorderPoint>1){
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+}
+
+
+//根据cannyimage初始化coloredArea，此时只有黑白两色
+void initColoredArea(){
+    for (int i=0; i<cannyimage.rows; i++) {
+        for(int j=0; j<cannyimage.cols; j++){
+            if(cannyimage.at<u_char>(i,j) == 255){
+                coloredArea.at<Vec3b>(i,j)[0]=255;
+                coloredArea.at<Vec3b>(i,j)[1]=255;
+                coloredArea.at<Vec3b>(i,j)[2]=255;
+            }else{
+                coloredArea.at<Vec3b>(i,j)[0]=0;
+                coloredArea.at<Vec3b>(i,j)[1]=0;
+                coloredArea.at<Vec3b>(i,j)[2]=0;
+            }
+        }
+        
+    }
+}
+
+//如果在涂色区域已经被涂成了对应的颜色说明已经到过这个点了，在判断的时候也可以作为是否能到达的标准！
+
+
+bool isReached(int x,int y){
+    bool isReached = (coloredArea.at<Vec3b>(x,y)[0]==r) && (coloredArea.at<Vec3b>(x,y)[1] == g)
+    && (coloredArea.at<Vec3b>(x,y)[2]==b);
+    if(isReached){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+
+//递归涂色
+void colorArea(int x,int y){
+    bool outOfBounds = (x<0)||(y<0)||(x>cannyimage.rows)||(y>cannyimage.cols);
+    if(outOfBounds){
+        return;
+    }
+    //越界以及如果是边界或者已经扫描过的点则停止
+    if(isReached(x, y) || isBorder(x, y)){
+        printf("BORDER!!!!\n");
+        return;
+    }
+    
+    colorElement(x,y);
+    
+    if(!(isReached(x-1, y) || isBorder(x-1, y))){
+        colorArea(x-1, y);
+        fromDirect = 4;     //从右到其左边的像素点
+    }
+    if(!(isReached(x+1, y) || isBorder(x+1, y))){
+        colorArea(x+1, y);
+        fromDirect = 3;     //从左到其右边的像素点
+    }
+    if(!(isReached(x, y+1) || isBorder(x, y+1))){
+        colorArea(x, y+1);
+        fromDirect = 1;     //从上到其下面的像素点
+    }
+    if(!(isReached(x, y-1) || isBorder(x, y-1))){
+        colorArea(x, y-1);
+        fromDirect = 2;     //从下到其上面的像素点
+    }
 }
 
 
 
 
+int direction = 0;   //目前的方向，0为初始方向，正数为已往左，负数为已往右
+int noise = 300;                 // 能够容忍的噪声数
+int cntUnreachableDot = 0;      //不可到达点的数量
 
 
+void direct(int x,int y){
+    
+    //判断前方是否存在障碍物，用一个矩形(70*30)圈定的范围内如果不可达的点数量超过容忍的噪音数(300)，则判定前方有障碍物
+    
+    int i,j;
+    
+    for(i=1; i<=70; i++){
+        for(j=1; j<=30;j++){
+            if(!isReached(x-i, (y-15+j))){
+                cntUnreachableDot++;
+            }
+        }
+    }
+    
+    
+    bool isBlocked = (cntUnreachableDot>noise);
+    
+    if(!isBlocked){                 //没有检测到障碍物的话就前进两步
+        robortControl(1);
+        robortControl(1);
+        robortControl(1);
+        
+        printf("前方一段距离没有障碍，可以前进\n");
+        return;
+    }else{
+        printf("前方不远处有障碍物\n");
+    }
+    
+    
+    
+    //前方有障碍物则转弯
+    
+    
+    if(direction>=0){        //当前已经往左偏移，先检测能不能往右
+        
+        //判断右边是否能够
+        cntUnreachableDot = 0;
+        
+        for(i=1; i<=70; i++){
+            for(j=1; j<=30;j++){
+                if(!isReached(x-j, (y+i))){
+                    cntUnreachableDot++;
+                }
+            }
+        }
+        
+        isBlocked = (cntUnreachableDot>noise);
+        
+        if(!isBlocked){
+            printf("右边一段距离没有障碍，可以前进\n");
+            direction--;
+            robortControl(4);
+            robortControl(4);
+            robortControl(4);
+            robortControl(4);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            return ;
+        }else{
+            printf("右边不远处有障碍物\n");
+        }
+        
+        
+        //判断左边是否能够
+        cntUnreachableDot = 0;
+        
+        for(i=1; i<=70; i++){
+            for(j=1; j<=30;j++){
+                if(!isReached(x-j, (y-i))){
+                    cntUnreachableDot++;
+                }
+            }
+        }
+        
+        bool isBlocked = (cntUnreachableDot>noise);
+        
+        if(!isBlocked){
+            printf("左边一段距离没有障碍，可以前进\n");
+            robortControl(3);
+            robortControl(3);
+            robortControl(3);
+            robortControl(3);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            direction++;
+            return ;
+        }else{
+            printf("左边不远处有障碍物\n");
+        }
+        
+        
+    }else{                          //当前未偏移或者已往右偏移，优先往左移动
+        
+        //判断左边是否能够
+        cntUnreachableDot = 0;
+        
+        for(i=1; i<=70; i++){
+            for(j=1; j<=30;j++){
+                if(!isReached(x-j, (y-i))){
+                    cntUnreachableDot++;
+                }
+            }
+        }
+        
+        bool isBlocked = (cntUnreachableDot>noise);
+        
+        if(!isBlocked){
+            printf("左边一段距离没有障碍，可以前进\n");
+            robortControl(3);
+            robortControl(3);
+            robortControl(3);
+            robortControl(3);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            direction++;
+            return ;
+        }else{
+            printf("左边不远处有障碍物\n");
+        }
+        
+        //判断右边是否能够
+        cntUnreachableDot = 0;
+        
+        for(i=1; i<=70; i++){
+            for(j=1; j<=30;j++){
+                if(!isReached(x-j, (y+i))){
+                    cntUnreachableDot++;
+                }
+            }
+        }
+        if(!isBlocked){
+            printf("右边一段距离没有障碍，可以前进\n");
+            direction--;
+            robortControl(4);
+            robortControl(4);
+            robortControl(4);
+            robortControl(4);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            robortControl(1);
+            return ;
+        }else{
+            printf("右边不远处有障碍物\n");
+        }
+        
+        
+    }
+    
+    //如果前左右都不行就只能后退了！后退一段距离然后转一个夹角向另外的方向探寻
+    robortControl(2);
+    robortControl(2);
+    robortControl(2);
+    robortControl(2);
+    robortControl(2);
+    robortControl(2);
+    robortControl(2);
+    
+    if(direction>=0){        //当前已经往左偏移，就继续往左转大于90°的夹角
+        robortControl(3);
+        robortControl(3);
+        robortControl(3);
+        robortControl(3);
+        robortControl(3);
+        robortControl(3);
+    }else{
+        robortControl(4);
+        robortControl(4);
+        robortControl(4);
+        robortControl(4);
+        robortControl(4);
+        robortControl(4);
+    }
 
-/*
- 
- 
- int g_slider_position = 0;
- CvCapture * g_capture = NULL;
- 
- 
- void onTrackbarSlide(int pos){
- cvSetCaptureProperty(g_capture, CV_CAP_PROP_POS_FRAMES, pos);
- }
- 
- 
- 
- int main()
- {
- cvNamedWindow("Example3", CV_WINDOW_AUTOSIZE);
- g_capture = cvCreateFileCapture( "/Users/jacky/Downloads/openc.avi" );
- 
- int frames = (int) cvGetCaptureProperty(g_capture, CV_CAP_PROP_FRAME_COUNT);
- 
- if (frames != 0) {
- cvCreateTrackbar("Position", "Example3", &g_slider_position, frames,onTrackbarSlide);
- }
- 
- IplImage * frame;
- if (g_capture) {
- while (1) {
- if (!cvGrabFrame(g_capture)) {
- break;
- }
- frame = cvQueryFrame(g_capture);
- if (!frame) {
- break;
- }
- cvShowImage("Example3", frame);
- 
- char c = cvWaitKey(33);
- if ( c == 27 ) {
- break;
- }
- }
- }
- cvReleaseCapture( &g_capture );
- cvDestroyWindow( "Example3" );
- 
- return(0);
- }
- 
- 
- 灰度视频输出
- #include <opencv2/highgui/highgui_c.h>
- #include <opencv2/opencv.hpp>
- 
- int g_slider_position = 0;
- CvCapture * g_capture = NULL;
- 
- void onTrackbarSlide(int pos){
- cvSetCaptureProperty(g_capture, CV_CAP_PROP_POS_FRAMES, pos);
- }
- 
- int main( int argc, char** argv){
- cvNamedWindow("Example3", CV_WINDOW_AUTOSIZE);
- g_capture = cvCreateCameraCapture(0);
- //( "/Users/jacky/Downloads/openc.avi" );
- 
- int frames = (int) cvGetCaptureProperty(g_capture, CV_CAP_PROP_FRAME_COUNT);
- 
- if (frames != 0) {
- cvCreateTrackbar("Position", "Example3", &g_slider_position, frames,onTrackbarSlide);
- }
- 
- IplImage * frame;
- if (g_capture) {
- while (1) {
- if (!cvGrabFrame(g_capture)) {
- break;
- }
- frame = cvQueryFrame(g_capture);
- if (!frame) {
- break;
- }
- cvShowImage("Example3", frame);
- 
- char c = cvWaitKey(33);
- if ( c == 27 ) {
- break;
- }
- }
- }
- cvReleaseCapture( &g_capture );
- cvDestroyWindow( "Example3" );
- 
- return(0);
- }
- 
- */
+    
+}
+
+int main(){
+    
+    long start,finish;
+    
+    Mat src;
+    Mat convert;
+    namedWindow( "test", CV_WINDOW_AUTOSIZE );
+    
+    while(true){
+        
+        start = clock();
+        getImage();
+        src = imread("/Users/jacky/Documents/workspace/OpenCVdemo/data.jpg",1);
+        lesson(src);
+        
+        if(src.empty()){
+            return -1;   //读不到图片？
+        }
+        
+        
+        
+        cvtColor(src , convert, CV_RGB2BGR);
+        blur(convert, convert, Size(2,2));
+        
+        
+        Canny(convert, cannyimage, 40, 80 ,3,false);
+        coloredArea = Mat::zeros( cannyimage.size(), CV_8UC3 );
+        initColoredArea();
+        
+        
+        //从接近最底的中点[因为最底有可能恰好是边界]，-8是随手设的！
+        int start_row = coloredArea.rows - 8;
+        int start_col = cannyimage.cols/2;
+        colorArea(start_row, start_col);
+        
+        direct(start_row,start_col);
+        
+        finish = clock();
+        
+        double t =(double)(finish-start)/CLOCKS_PER_SEC;
+        
+        printf("  %f \n",t);
+        
+        
+        //展示一下
+        
+//            imshow("test", cannyimage);
+        imshow( "test", coloredArea );
+        cvWaitKey(1);
+        
+        
+        
+    }
+}
